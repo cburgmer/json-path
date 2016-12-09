@@ -73,11 +73,12 @@
 
 (defn select-by-ng [[opcode & operands :as obj-spec] context]
   (cond
-    (sequential? (:current context)) (vec (flatten (map first (filter #(not (empty? %))
-                                                           (map #(select-by-ng obj-spec (assoc context :current %))
-                                                                (:current context))))))
+    (sequential? (:current context)) (let [sub-selection (->> (:current context)
+                                                              (map #(select-by-ng obj-spec (assoc context :current %)))
+                                                              (keep-indexed (fn [i [obj key]] (if (not (empty? obj)) [obj (vec (cons i (flatten key)))]))))]
+                                       [(vec (flatten (map first sub-selection))) (map second sub-selection)])
     :else (cond
-            (= (first operands) "*") (vec (vals (:current context)))
+            (= (first operands) "*") [(vec (vals (:current context))) (map vector (keys (:current context)))]
             :else (let [key (keyword (first operands))]
                     [(key (:current context)) [key]]))))
 

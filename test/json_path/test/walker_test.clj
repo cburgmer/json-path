@@ -18,10 +18,10 @@
 (facts
   (select-by-ng [:key "hello"] {:current {:hello "world"}}) => ["world" [:hello]]
   (select-by-ng [:key "hello"] {:current [{:hello "foo"} {:hello "bar"}]}) => [["foo" "bar"] [[0 :hello] [1 :hello]]]
-  (select-by [:key "hello"] {:current [{:blah "foo"} {:hello "bar"}]}) => [ "bar"]
-  (select-by [:key "*"] {:current {:hello "world"}}) => ["world"]
-  (sort (select-by [:key "*"] {:current {:hello "world", :foo "bar"}})) => ["bar", "world"]
-  (sort (select-by [:key "*"] {:current [{:hello "world"}, {:foo "bar"}]})) => ["bar", "world"])
+  (select-by-ng [:key "hello"] {:current [{:blah "foo"} {:hello "bar"}]}) => [["bar"] '([1 :hello])]
+  (select-by-ng [:key "*"] {:current {:hello "world"}}) => [["world"] '([:hello])]
+  (select-by-ng [:key "*"] {:current {:hello "world" :foo "bar"}}) => [["bar" "world"] '([:foo] [:hello])]
+  (select-by-ng [:key "*"] {:current [{:hello "world"} {:foo "bar"}]}) => [["world" "bar"] '([0 :hello] [1 :foo])])
 
 (fact
   (walk-path-ng [[:root]] {:root ...root..., :current  ...obj...}) => [...root... []]
@@ -44,16 +44,17 @@
   (walk-ng [:path [[:child]]] {:current ...json...}) => [...json... []]
   (walk-ng [:path [[:current]]] {:current ...json...}) => [...json... []]
   (walk-ng [:path [[:key "foo"]]] {:current {:foo "bar"}}) => ["bar" [:foo]]
-  (walk [:path [[:all-children]]]
+  (walk-ng [:path [[:all-children]]]
         {:current
          {:hello {:world "foo"},
           :baz {:world "bar",
-                :quuz {:world "zux"}}}}) => [{:hello {:world "foo"},
-                                              :baz {:world "bar", :quuz {:world "zux"}}},
-                                             {:world "foo"},
-                                             {:world "bar",
-                                              :quuz {:world "zux"}},
-                                             {:world "zux"}]
+                :quuz {:world "zux"}}}}) => [[{:hello {:world "foo"},
+                                               :baz {:world "bar", :quuz {:world "zux"}}},
+                                              {:world "foo"},
+                                              {:world "bar",
+                                               :quuz {:world "zux"}},
+                                              {:world "zux"}]
+                                             '([] [:hello] [:baz] [:baz :quuz])]
   (walk [:path [[:all-children]]]
         {:current
          (list {:hello {:world "foo"}}
@@ -63,8 +64,8 @@
                                             {:baz {:world "bar"}}
                                             {:world "foo"}
                                             {:world "bar"}]
-  (walk [:path [[:all-children]]]
-        {:current "scalar"}) => ["scalar"]
+  (walk-ng [:path [[:all-children]]]
+           {:current "scalar"}) => [["scalar"] '([])]
   (walk-ng [:selector [:index "1"]] {:current ["foo", "bar", "baz"]}) => ["bar" [1]]
   (walk-ng [:selector [:index "*"]] {:current [:a :b]}) => [[:a :b] [0 1]]
   (walk-ng [:selector [:filter [:eq
@@ -83,7 +84,7 @@
                          {:bar "baz" :hello "world"}]}}) => [["world"] [:foo 1 :hello]])
 
 (facts "walking a nil object should be safe"
-  (walk [:path [[:root]]] nil) => nil
-  (walk [:path [[:root] [:child] [:key "foo"]]] {:bar "baz"}) => nil
-  (walk [:path [[:root] [:child] [:key "foo"] [:child] [:key "bar"]]]
-        {:foo {:baz "hello"}}) => nil)
+  (walk-ng [:path [[:root]]] nil) => [nil []]
+  (walk-ng [:path [[:root] [:child] [:key "foo"]]] {:bar "baz"}) => [nil [:foo]]
+  (walk-ng [:path [[:root] [:child] [:key "foo"] [:child] [:key "bar"]]]
+           {:foo {:baz "hello"}}) => [nil [:foo :bar]])
