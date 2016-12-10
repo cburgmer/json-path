@@ -52,9 +52,9 @@
     (= [:all-children] next) (let [children (transpose (obj-aggregator (:current context)))
                                    all-children (cons [(:current context) []] children)
                                    sub-selection (map (fn [[obj key]] (let [[child-val child-key] (walk-path parts (assoc context :current obj))]
-                                                                           [child-val key])  ;; child-key?
-                                                           )
-                                                         all-children)]
+                                                                        [child-val key])  ;; child-key?
+                                                        )
+                                                      all-children)]
                                (transpose sub-selection))
     (= :key (first next)) (let [[value key] (select-by next context)
                                 [result downstream-key] (walk-path parts (assoc context :current value))]
@@ -76,8 +76,8 @@
 
 (defn walk [[opcode operand continuation] context]
   (let [[down-obj down-key] (cond
-                   (= opcode :path) (walk-path operand context)
-                   (= opcode :selector) (walk-selector operand context))]
+                              (= opcode :path) (walk-path operand context)
+                              (= opcode :selector) (walk-selector operand context))]
     (if continuation
       (let [[obj key] (walk continuation (assoc context :current down-obj))]
         [obj (vec (concat down-key key))])
