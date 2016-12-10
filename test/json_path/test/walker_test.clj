@@ -26,8 +26,9 @@
 (fact
   (walk-path-ng [[:root]] {:root ...root..., :current  ...obj...}) => [...root... []]
   (walk-path-ng [[:root] [:child] [:key "foo"]] {:root {:foo "bar"}}) => ["bar" [:foo]]
-  (walk-path [[:all-children]] {:current {:foo "bar" :baz {:qux "zoo"}}}) => [{:foo "bar" :baz {:qux "zoo"}},
-                                                                   {:qux "zoo"}])
+  (walk-path-ng [[:all-children]] {:current {:foo "bar" :baz {:qux "zoo"}}}) => [[{:foo "bar" :baz {:qux "zoo"}},
+                                                                                  {:qux "zoo"}]
+                                                                                 [[] [:baz]]])
 
 (fact
   (walk-selector-ng [:index "1"] {:current ["foo", "bar", "baz"]}) => ["bar" [1]]
@@ -55,15 +56,16 @@
                                                :quuz {:world "zux"}},
                                               {:world "zux"}]
                                              '([] [:hello] [:baz] [:baz :quuz])]
-  (walk [:path [[:all-children]]]
+  (walk-ng [:path [[:all-children]]]
         {:current
          (list {:hello {:world "foo"}}
-               {:baz {:world "bar"}})}) => [[{:hello {:world "foo"}}
+               {:baz {:world "bar"}})}) => [[[{:hello {:world "foo"}}
                                              {:baz {:world "bar"}}]
                                             {:hello {:world "foo"}}
                                             {:baz {:world "bar"}}
                                             {:world "foo"}
-                                            {:world "bar"}]
+                                             {:world "bar"}]
+                                            [[] [0] [1] [0 :hello] [1 :baz]]]
   (walk-ng [:path [[:all-children]]]
            {:current "scalar"}) => [["scalar"] '([])]
   (walk-ng [:selector [:index "1"]] {:current ["foo", "bar", "baz"]}) => ["bar" [1]]

@@ -3,4 +3,4 @@
    [json-path.walker :as walker]])
 
 (defn at-path [path object]
-  (walker/walk (parser/parse-path path) {:root object}))
+  (first (walker/walk-ng (parser/parse-path path) {:root object})))
