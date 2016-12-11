@@ -51,11 +51,12 @@
    (= [:current] next) (walk-path parts context)
    (= [:all-children] next) (let [children (transpose (obj-aggregator (:current context)))
                                   all-children (cons [(:current context) []] children)
-                                  sub-selection (map (fn [[obj key]] (let [[child-val child-key] (walk-path parts (assoc context :current obj))]
-                                                                       [child-val key])  ;; child-key?
-                                                       ;; also no map
-                                                       )
-                                                     all-children)]
+                                  sub-selection (->> all-children
+                                                     (map (fn [[obj key]] (let [[child-val child-key] (walk-path parts (assoc context :current obj))]
+                                                                            [child-val (vec (concat key child-key))])
+                                                            ;; also no map
+                                                            ))
+                                                     (filter #(not (empty? (first %)))))]
                               (transpose sub-selection))
    (= :key (first next)) (let [[value key] (select-by next context)
                                [result downstream-key] (walk-path parts (assoc context :current value))]

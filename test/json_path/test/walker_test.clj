@@ -34,7 +34,7 @@
   (walk-selector [:index "1"] {:current ["foo", "bar", "baz"]}) => ["bar" [1]]
   (walk-selector [:index "*"] {:current [:a :b]}) => [[:a :b] [[0] [1]]]
   (walk-selector [:filter [:eq [:path [[:current] [:child] [:key "bar"]]] [:val "baz"]]]
-                 {:current  [{:bar "wrong"} {:bar "baz"}]}) => [[{:bar "baz"}] [1]])
+                 {:current  [{:bar "wrong"} {:bar "baz"}]}) => [[{:bar "baz"}] [[1]]])
 
 (fact "selecting places constraints on the shape of the object being selected from"
   (walk-selector [:index "1"] {:current {:foo "bar"}}) => (throws Exception)
@@ -67,7 +67,11 @@
                                              {:world "bar"}]
                                             [[] [0] [1] [0 :hello] [1 :baz]]]
   (walk [:path [[:all-children]]]
-           {:current "scalar"}) => [["scalar"] '([])]
+        {:current "scalar"}) => [["scalar"] '([])]
+  (walk [:path [[:all-children] [:key "world"]]]
+        {:current {:hello {:world "foo"},
+                   :baz   {:world "bar",
+                           :quuz {:world "zux"}}}}) => [["foo" "bar" "zux"] [[:hello :world] [:baz :world] [:baz :quuz :world]]]
   (walk [:selector [:index "1"]] {:current ["foo", "bar", "baz"]}) => ["bar" [1]]
   (walk [:selector [:index "*"]] {:current [:a :b]}) => [[:a :b] [[0] [1]]]
   (walk [:selector [:index "*"]
@@ -79,7 +83,7 @@
                                      [:child]
                                      [:key "bar"]]]
                              [:val "baz"]]]]
-           {:current [{:bar "wrong"} {:bar "baz"}]}) => [[{:bar "baz"}] [1]]
+           {:current [{:bar "wrong"} {:bar "baz"}]}) => [[{:bar "baz"}] [[1]]]
   (walk [:path [[:root] [:child] [:key "foo"]]
             [:selector [:filter [:eq [:path [[:current]
                                              [:child]
