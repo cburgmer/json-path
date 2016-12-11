@@ -32,7 +32,7 @@
 
 (fact
   (walk-selector [:index "1"] {:current ["foo", "bar", "baz"]}) => ["bar" [1]]
-  (walk-selector [:index "*"] {:current [:a :b]}) => [[:a :b] [0 1]]
+  (walk-selector [:index "*"] {:current [:a :b]}) => [[:a :b] [[0] [1]]]
   (walk-selector [:filter [:eq [:path [[:current] [:child] [:key "bar"]]] [:val "baz"]]]
                  {:current  [{:bar "wrong"} {:bar "baz"}]}) => [[{:bar "baz"}] [1]])
 
@@ -69,7 +69,11 @@
   (walk [:path [[:all-children]]]
            {:current "scalar"}) => [["scalar"] '([])]
   (walk [:selector [:index "1"]] {:current ["foo", "bar", "baz"]}) => ["bar" [1]]
-  (walk [:selector [:index "*"]] {:current [:a :b]}) => [[:a :b] [0 1]]
+  (walk [:selector [:index "*"]] {:current [:a :b]}) => [[:a :b] [[0] [1]]]
+  (walk [:selector [:index "*"]
+         [:path [[:child] [:key "foo"]]]]
+        {:current
+         [{:foo 1} {:foo 2}]}) => [[1 2] [[0 :foo] [1 :foo]]]
   (walk [:selector [:filter [:eq
                              [:path [[:current]
                                      [:child]
