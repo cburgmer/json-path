@@ -30,7 +30,7 @@
 
 (defn obj-vals [obj]
   (cond
-    (seq? obj) (transpose [obj (map vector (range (count obj)))])
+    (seq? obj) (map-indexed (fn [idx child-obj] [child-obj [idx]]) obj)
     (map? obj) (->> obj
                     (filter (fn [[k v]] (map? v)))
                     (map (fn [[k v]] [v [k]])))
@@ -39,9 +39,9 @@
 (defn obj-aggregator [obj]
   (let [obj-vals (obj-vals obj)
         children (->> obj-vals
-                      (mapcat (fn [[val key]] (->> (transpose (obj-aggregator val))
+                      (mapcat (fn [[val key]] (->> (obj-aggregator val)
                                                    (map (fn [[child-val child-key]] [child-val (vec (concat key child-key))]))))))]
-    (transpose (concat obj-vals children))))
+    (concat obj-vals children)))
 
 (defn walk-path [[next & parts] context]
   (cond
@@ -49,7 +49,7 @@
    (= [:root] next) (walk-path parts (assoc context :current (:root context)))
    (= [:child] next) (walk-path parts context)
    (= [:current] next) (walk-path parts context)
-   (= [:all-children] next) (let [children (transpose (obj-aggregator (:current context)))
+   (= [:all-children] next) (let [children (obj-aggregator (:current context))
                                   all-children (cons [(:current context) []] children)
                                   sub-selection (->> all-children
                                                      (map (fn [[obj key]] (let [[child-val child-key] (walk-path parts (assoc context :current obj))]
