@@ -2,6 +2,11 @@
 
 (declare walk eval-expr)
 
+(defn for-list-or-scalar [obj func]
+  (if (seq? obj)
+    (map func obj)
+    (func obj)))
+
 (defn eval-eq-expr [op-form context operands]
   (apply op-form (map #(eval-expr % context) operands)))
 
@@ -12,21 +17,23 @@
      (= expr-type :val) (first operands)
      (= expr-type :path) (first (walk expr context)))))
 
+(defn- transpose [pairs]
+  (if (empty? pairs)
+    [[] []]
+    (apply map vector pairs)))
+
 (defn select-by [[opcode & operands :as obj-spec] context]
   (cond
    (sequential? (:current context)) (let [sub-selection (->> (:current context)
                                                              (map #(select-by obj-spec (assoc context :current %)))
-                                                             (keep-indexed (fn [i [obj key]] (if (not (empty? obj)) [obj (vec (cons i (flatten key)))]))))]
-                                      [(vec (flatten (map first sub-selection))) (map second sub-selection)])
+                                                             (keep-indexed (fn [i sel] (for-list-or-scalar sel (fn [[obj key]] (if (not (empty? obj)) [obj (vec (cons i key))]))))))]
+                                      (if (seq? (first sub-selection))
+                                        (apply concat sub-selection)
+                                        sub-selection))
    :else (cond
-           (= (first operands) "*") [(vec (vals (:current context))) (map vector (keys (:current context)))]
+           (= (first operands) "*") (map (fn [[k v]] [v [k]]) (:current context))
            :else (let [key (keyword (first operands))]
                    [(key (:current context)) [key]]))))
-
-(defn- transpose [pairs]
-  (if (empty? pairs)
-    [[] []]
-    (apply mapv vector pairs)))
 
 (defn obj-vals [obj]
   (cond
@@ -57,31 +64,33 @@
                                                             ;; also no map
                                                             ))
                                                      (filter #(not (empty? (first %)))))]
-                              (transpose sub-selection))
+                              sub-selection)
    (= :key (first next)) (let [[value key] (select-by next context)
-                               [result downstream-key] (walk-path parts (assoc context :current value))]
-                           [result (vec (concat key downstream-key))])))
+                               result (walk-path parts (assoc context :current value))]
+                           (for-list-or-scalar result (fn [[down-obj down-key]] [down-obj (vec (concat key down-key))])))))
 
 (defn walk-selector [sel-expr context]
   (cond
    (= :index (first sel-expr)) (if (sequential? (:current context))
                                  (let [sel (nth sel-expr 1)]
                                    (if (= "*" sel)
-                                     (let [current (:current context)]
-                                       [current (vec (map vector (range (count current))))])
+                                     (map-indexed (fn [idx child-obj] [child-obj [idx]]) (:current context))
                                      (let [index (Integer/parseInt sel)]
                                        [(nth (:current context) index) [index]])))
                                  (throw (Exception. "object must be an array.")))
-   (= :filter (first sel-expr)) (->> (:current context)
-                                     (keep-indexed (fn [i e] (if (eval-expr (nth sel-expr 1) (assoc context :current e)) [e [i]])))
-                                     (apply map vector))))
-
+   (= :filter (first sel-expr)) (keep-indexed (fn [i e] (if (eval-expr (nth sel-expr 1) (assoc context :current e)) [e [i]]))
+                                              (:current context))))
 
 (defn walk [[opcode operand continuation] context]
-  (let [[down-obj down-key] (cond
-                              (= opcode :path) (walk-path operand context)
-                              (= opcode :selector) (walk-selector operand context))]
+  (let [down (cond
+              (= opcode :path) (walk-path operand context)
+              (= opcode :selector) (walk-selector operand context))]
     (if continuation
-      (let [[obj key] (walk continuation (assoc context :current down-obj))]
-        [obj (vec (concat down-key key))])
-      [down-obj down-key])))
+      (if (seq? down)
+        (map (fn [[val key]] (let [[child-val child-key] (walk continuation (assoc context :current val))] ;; no map?
+                               [child-val (vec (concat key child-key))]))
+             down)
+        (let [[val key] down
+              obj (walk continuation (assoc context :current val))]
+          (for-list-or-scalar obj (fn [[child-val child-key]] [child-val (vec (concat key child-key))]))))
+      down)))

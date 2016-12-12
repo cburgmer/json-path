@@ -17,24 +17,24 @@
 
 (facts
   (select-by [:key "hello"] {:current {:hello "world"}}) => ["world" [:hello]]
-  (select-by [:key "hello"] {:current [{:hello "foo"} {:hello "bar"}]}) => [["foo" "bar"] [[0 :hello] [1 :hello]]]
-  (select-by [:key "hello"] {:current [{:blah "foo"} {:hello "bar"}]}) => [["bar"] '([1 :hello])]
-  (select-by [:key "*"] {:current {:hello "world"}}) => [["world"] '([:hello])]
-  (select-by [:key "*"] {:current {:hello "world" :foo "bar"}}) => [["bar" "world"] '([:foo] [:hello])]
-  (select-by [:key "*"] {:current [{:hello "world"} {:foo "bar"}]}) => [["world" "bar"] '([0 :hello] [1 :foo])])
+  (select-by [:key "hello"] {:current [{:hello "foo"} {:hello "bar"}]}) => '(["foo" [0 :hello]] ["bar" [1 :hello]])
+  (select-by [:key "hello"] {:current [{:blah "foo"} {:hello "bar"}]}) => '(["bar" [1 :hello]])
+  (select-by [:key "*"] {:current {:hello "world"}}) => '(["world" [:hello]])
+  (select-by [:key "*"] {:current {:hello "world" :foo "bar"}}) => '(["bar" [:foo]] ["world" [:hello]])
+  (select-by [:key "*"] {:current [{:hello "world"} {:foo "bar"}]}) => '(["world" [0 :hello]] ["bar" [1 :foo]]))
 
 (fact
   (walk-path [[:root]] {:root ...root..., :current  ...obj...}) => [...root... []]
   (walk-path [[:root] [:child] [:key "foo"]] {:root {:foo "bar"}}) => ["bar" [:foo]]
-  (walk-path [[:all-children]] {:current {:foo "bar" :baz {:qux "zoo"}}}) => [[{:foo "bar" :baz {:qux "zoo"}},
-                                                                                  {:qux "zoo"}]
-                                                                                 [[] [:baz]]])
+  (walk-path [[:key "foo"]] {:current [{:foo "bar"} {:foo "baz"} {:foo "qux"}]}) => '(["bar" [0 :foo]] ["baz" [1 :foo]] ["qux" [2 :foo]])
+  (walk-path [[:all-children]] {:current {:foo "bar" :baz {:qux "zoo"}}}) => '([{:foo "bar" :baz {:qux "zoo"}} []]
+                                                                               [{:qux "zoo"} [:baz]]))
 
 (fact
   (walk-selector [:index "1"] {:current ["foo", "bar", "baz"]}) => ["bar" [1]]
-  (walk-selector [:index "*"] {:current [:a :b]}) => [[:a :b] [[0] [1]]]
+  (walk-selector [:index "*"] {:current [:a :b]}) => '([:a [0]] [:b [1]])
   (walk-selector [:filter [:eq [:path [[:current] [:child] [:key "bar"]]] [:val "baz"]]]
-                 {:current  [{:bar "wrong"} {:bar "baz"}]}) => [[{:bar "baz"}] [[1]]])
+                 {:current  [{:bar "wrong"} {:bar "baz"}]}) => '([{:bar "baz"} [1]]))
 
 (fact "selecting places constraints on the shape of the object being selected from"
   (walk-selector [:index "1"] {:current {:foo "bar"}}) => (throws Exception)
@@ -49,49 +49,54 @@
         {:current
          {:hello {:world "foo"},
           :baz {:world "bar",
-                :quuz {:world "zux"}}}}) => [[{:hello {:world "foo"},
-                                               :baz {:world "bar", :quuz {:world "zux"}}},
-                                              {:world "foo"},
-                                              {:world "bar",
-                                               :quuz {:world "zux"}},
-                                              {:world "zux"}]
-                                             '([] [:hello] [:baz] [:baz :quuz])]
+                :quuz {:world "zux"}}}}) => '([{:hello {:world "foo"},
+                                                :baz {:world "bar", :quuz {:world "zux"}}}
+                                               []]
+                                              [{:world "foo"}
+                                               [:hello]]
+                                              [{:world "bar",
+                                                :quuz {:world "zux"}}
+                                               [:baz]]
+                                              [{:world "zux"}
+                                               [:baz :quuz]])
   (walk [:path [[:all-children]]]
         {:current
          (list {:hello {:world "foo"}}
-               {:baz {:world "bar"}})}) => [[[{:hello {:world "foo"}}
-                                             {:baz {:world "bar"}}]
-                                            {:hello {:world "foo"}}
-                                            {:baz {:world "bar"}}
-                                            {:world "foo"}
-                                             {:world "bar"}]
-                                            [[] [0] [1] [0 :hello] [1 :baz]]]
+               {:baz {:world "bar"}})}) => '([[{:hello {:world "foo"}}
+                                               {:baz {:world "bar"}}]
+                                              []]
+                                             [{:hello {:world "foo"}} [0]]
+                                             [{:baz {:world "bar"}} [1]]
+                                             [{:world "foo"} [0 :hello]]
+                                             [{:world "bar"} [1 :baz]])
   (walk [:path [[:all-children]]]
-        {:current "scalar"}) => [["scalar"] '([])]
+        {:current "scalar"}) => '(["scalar" []])
   (walk [:path [[:all-children] [:key "world"]]]
         {:current {:hello {:world "foo"},
                    :baz   {:world "bar",
-                           :quuz {:world "zux"}}}}) => [["foo" "bar" "zux"] [[:hello :world] [:baz :world] [:baz :quuz :world]]]
+                           :quuz {:world "zux"}}}}) => '(["foo" [:hello :world]]
+                                                         ["bar" [:baz :world]]
+                                                         ["zux" [:baz :quuz :world]])
   (walk [:selector [:index "1"]] {:current ["foo", "bar", "baz"]}) => ["bar" [1]]
-  (walk [:selector [:index "*"]] {:current [:a :b]}) => [[:a :b] [[0] [1]]]
+  (walk [:selector [:index "*"]] {:current [:a :b]}) => '([:a [0]] [:b [1]])
   (walk [:selector [:index "*"]
          [:path [[:child] [:key "foo"]]]]
         {:current
-         [{:foo 1} {:foo 2}]}) => [[1 2] [[0 :foo] [1 :foo]]]
+         [{:foo 1} {:foo 2}]}) => '([1 [0 :foo]] [2 [1 :foo]])
   (walk [:selector [:filter [:eq
                              [:path [[:current]
                                      [:child]
                                      [:key "bar"]]]
                              [:val "baz"]]]]
-           {:current [{:bar "wrong"} {:bar "baz"}]}) => [[{:bar "baz"}] [[1]]]
+        {:current [{:bar "wrong"} {:bar "baz"}]}) => '([{:bar "baz"} [1]])
   (walk [:path [[:root] [:child] [:key "foo"]]
-            [:selector [:filter [:eq [:path [[:current]
-                                             [:child]
-                                             [:key "bar"]]]
-                                 [:val "baz"]]]
-             [:path [[:child] [:key "hello"]]]]]
-           {:root {:foo [{:bar "wrong" :hello "goodbye"}
-                         {:bar "baz" :hello "world"}]}}) => [["world"] [:foo 1 :hello]])
+         [:selector [:filter [:eq [:path [[:current]
+                                          [:child]
+                                          [:key "bar"]]]
+                              [:val "baz"]]]
+          [:path [[:child] [:key "hello"]]]]]
+        {:root {:foo [{:bar "wrong" :hello "goodbye"}
+                      {:bar "baz" :hello "world"}]}}) => '(["world" [:foo 1 :hello]]))
 
 (facts "walking a nil object should be safe"
   (walk [:path [[:root]]] nil) => [nil []]
