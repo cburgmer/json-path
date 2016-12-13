@@ -58,13 +58,12 @@
    (= [:root] next) (walk-path parts (assoc context :current (:root context)))
    (= [:child] next) (walk-path parts context)
    (= [:current] next) (walk-path parts context)
-   (= [:all-children] next) (let [children (obj-aggregator (:current context))
-                                  all-children (cons [(:current context) []] children)]
+   (= [:all-children] next) (let [all-children (cons [(:current context) []]
+                                                     (obj-aggregator (:current context)))]
                               (->> all-children
                                    (map-selection #(walk-path parts (assoc context :current %)))
                                    (filter #(not (empty? (first %))))))
-   (= :key (first next)) (let [selection (select-by next context)]
-                           (map-selection #(walk-path parts (assoc context :current %)) selection))))
+   (= :key (first next)) (map-selection #(walk-path parts (assoc context :current %)) (select-by next context))))
 
 (defn walk-selector [sel-expr context]
   (cond
@@ -79,15 +78,9 @@
                                               (:current context))))
 
 (defn walk [[opcode operand continuation] context]
-  (let [down (cond
-              (= opcode :path) (walk-path operand context)
-              (= opcode :selector) (walk-selector operand context))]
+  (let [down-obj (cond
+         (= opcode :path) (walk-path operand context)
+         (= opcode :selector) (walk-selector operand context))]
     (if continuation
-      (if (seq? down)
-        (map (fn [[val key]] (let [[child-val child-key] (walk continuation (assoc context :current val))] ;; no map?
-                               [child-val (vec (concat key child-key))]))
-             down)
-        (let [[val key] down
-              obj (walk continuation (assoc context :current val))]
-          (map# (fn [[child-val child-key]] [child-val (vec (concat key child-key))]) obj)))
-      down)))
+      (map-selection #(walk continuation (assoc context :current %)) down-obj)
+      down-obj)))

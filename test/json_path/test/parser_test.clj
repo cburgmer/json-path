@@ -32,6 +32,7 @@
   (parse '("$" "[" "3" "]" "." "bar")) => [:path [[:root]] [:selector [:index "3"] [:path [[:child] [:key "bar"]]]]])
 
 (facts
+  (parse-path "") => []
   (parse-path "$") => [:path [[:root]]]
   (parse-path "$.hello") => [:path [[:root] [:child] [:key "hello"]]]
   (parse-path "$.hello-world") => [:path [[:root] [:child] [:key "hello-world"]]]
