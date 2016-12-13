@@ -41,9 +41,15 @@
 (defn- with-parent-key [parent-key selection]
   (map# (fn [[value key]] [value (vec (concat parent-key key))]) selection))
 
+(defn- map-selection [func selection]
+  (let [sub-selection (map# (fn [[val key]] (with-parent-key key (func val))) selection)]
+    (if (seq? (first sub-selection))
+      (apply concat sub-selection)
+      sub-selection)))
+
 (defn obj-aggregator [obj]
   (let [obj-vals (obj-vals obj)
-        children (mapcat (fn [[val key]] (with-parent-key key (obj-aggregator val))) obj-vals)]
+        children (map-selection obj-aggregator obj-vals)]
     (concat obj-vals children)))
 
 (defn walk-path [[next & parts] context]
@@ -53,16 +59,12 @@
    (= [:child] next) (walk-path parts context)
    (= [:current] next) (walk-path parts context)
    (= [:all-children] next) (let [children (obj-aggregator (:current context))
-                                  all-children (cons [(:current context) []] children)
-                                  sub-selection (->> all-children
-                                                     (map (fn [[obj key]] (with-parent-key key (walk-path parts (assoc context :current obj)))))
-                                                     (filter #(not (empty? (first %)))))]
-                              (if (seq? (first sub-selection))
-                                (apply concat sub-selection)
-                                sub-selection))
-   (= :key (first next)) (let [selection (select-by next context)
-                               result (map# (fn [[value key]] (with-parent-key key (walk-path parts (assoc context :current value)))) selection)]
-                           result)))
+                                  all-children (cons [(:current context) []] children)]
+                              (->> all-children
+                                   (map-selection #(walk-path parts (assoc context :current %)))
+                                   (filter #(not (empty? (first %))))))
+   (= :key (first next)) (let [selection (select-by next context)]
+                           (map-selection #(walk-path parts (assoc context :current %)) selection))))
 
 (defn walk-selector [sel-expr context]
   (cond
