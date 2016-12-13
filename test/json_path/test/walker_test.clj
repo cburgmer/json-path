@@ -28,7 +28,9 @@
   (walk-path [[:root] [:child] [:key "foo"]] {:root {:foo "bar"}}) => ["bar" [:foo]]
   (walk-path [[:key "foo"]] {:current [{:foo "bar"} {:foo "baz"} {:foo "qux"}]}) => '(["bar" [0 :foo]] ["baz" [1 :foo]] ["qux" [2 :foo]])
   (walk-path [[:all-children]] {:current {:foo "bar" :baz {:qux "zoo"}}}) => '([{:foo "bar" :baz {:qux "zoo"}} []]
-                                                                               [{:qux "zoo"} [:baz]]))
+                                                                               [{:qux "zoo"} [:baz]])
+  (distinct (walk-path [[:all-children] [:key "bar"]] ;; distinct works around dups, mentioned in https://github.com/gga/json-path/pull/6
+                       {:current '([{:bar "hello"}])})) => '(["hello" [0 0 :bar]]))
 
 (fact
   (walk-selector [:index "1"] {:current ["foo", "bar", "baz"]}) => ["bar" [1]]
