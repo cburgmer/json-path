@@ -17,11 +17,21 @@
      (= expr-type :val) (first operands)
      (= expr-type :path) (first (walk expr context)))))
 
+(defn- with-parent-key [parent-key selection]
+  (map# (fn [[value key]] [value (vec (concat parent-key key))]) selection))
+
+(defn- map-selection [func selection]
+  (let [sub-selection (map# (fn [[val key]] (with-parent-key key (func val))) selection)]
+    (if (seq? (first sub-selection))
+      (apply concat sub-selection)
+      sub-selection)))
+
 (defn select-by [[opcode & operands :as obj-spec] context]
   (cond
    (sequential? (:current context)) (let [sub-selection (->> (:current context)
                                                              (map #(select-by obj-spec (assoc context :current %)))
-                                                             (keep-indexed (fn [i sel] (map# (fn [[obj key]] (if (not (empty? obj)) [obj (vec (cons i key))])) sel))))]
+                                                             (map-indexed (fn [i sel] (map# (fn [[obj key]] [obj (vec (cons i key))]) sel)))
+                                                             (filter #(not (empty? (first %)))))]
                                       (if (seq? (first sub-selection))
                                         (apply concat sub-selection)
                                         sub-selection))
@@ -37,15 +47,6 @@
                     (filter (fn [[k v]] (map? v)))
                     (map (fn [[k v]] [v [k]])))
     :else '()))
-
-(defn- with-parent-key [parent-key selection]
-  (map# (fn [[value key]] [value (vec (concat parent-key key))]) selection))
-
-(defn- map-selection [func selection]
-  (let [sub-selection (map# (fn [[val key]] (with-parent-key key (func val))) selection)]
-    (if (seq? (first sub-selection))
-      (apply concat sub-selection)
-      sub-selection)))
 
 (defn obj-aggregator [obj]
   (let [obj-vals (obj-vals obj)
