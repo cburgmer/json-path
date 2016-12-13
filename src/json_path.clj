@@ -4,4 +4,4 @@
 
 (defn at-path [path object]
   (let [result (walker/walk (parser/parse-path path) {:root object})]
-    (walker/for-list-or-scalar result first)))
+    (walker/map# first result)))

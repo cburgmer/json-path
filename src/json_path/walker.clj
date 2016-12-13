@@ -2,7 +2,7 @@
 
 (declare walk eval-expr)
 
-(defn for-list-or-scalar [obj func]
+(defn map# [func obj]
   (if (seq? obj)
     (map func obj)
     (func obj)))
@@ -17,16 +17,11 @@
      (= expr-type :val) (first operands)
      (= expr-type :path) (first (walk expr context)))))
 
-(defn- transpose [pairs]
-  (if (empty? pairs)
-    [[] []]
-    (apply map vector pairs)))
-
 (defn select-by [[opcode & operands :as obj-spec] context]
   (cond
    (sequential? (:current context)) (let [sub-selection (->> (:current context)
                                                              (map #(select-by obj-spec (assoc context :current %)))
-                                                             (keep-indexed (fn [i sel] (for-list-or-scalar sel (fn [[obj key]] (if (not (empty? obj)) [obj (vec (cons i key))]))))))]
+                                                             (keep-indexed (fn [i sel] (map# (fn [[obj key]] (if (not (empty? obj)) [obj (vec (cons i key))])) sel))))]
                                       (if (seq? (first sub-selection))
                                         (apply concat sub-selection)
                                         sub-selection))
@@ -51,7 +46,7 @@
     (concat obj-vals children)))
 
 (defn- with-parent-key [parent-key selection]
-  (for-list-or-scalar selection (fn [[value key]] [value (vec (concat parent-key key))])))
+  (map# (fn [[value key]] [value (vec (concat parent-key key))]) selection))
 
 (defn walk-path [[next & parts] context]
   (cond
@@ -68,7 +63,7 @@
                                 (apply concat sub-selection)
                                 sub-selection))
    (= :key (first next)) (let [selection (select-by next context)
-                               result (for-list-or-scalar selection (fn [[value key]] (with-parent-key key (walk-path parts (assoc context :current value)))))]
+                               result (map# (fn [[value key]] (with-parent-key key (walk-path parts (assoc context :current value)))) selection)]
                            result)))
 
 (defn walk-selector [sel-expr context]
@@ -94,5 +89,5 @@
              down)
         (let [[val key] down
               obj (walk continuation (assoc context :current val))]
-          (for-list-or-scalar obj (fn [[child-val child-key]] [child-val (vec (concat key child-key))]))))
+          (map# (fn [[child-val child-key]] [child-val (vec (concat key child-key))]) obj)))
       down)))
