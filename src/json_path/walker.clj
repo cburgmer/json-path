@@ -38,15 +38,13 @@
                     (map (fn [[k v]] [v [k]])))
     :else '()))
 
-(defn obj-aggregator [obj]
-  (let [obj-vals (obj-vals obj)
-        children (->> obj-vals
-                      (mapcat (fn [[val key]] (->> (obj-aggregator val)
-                                                   (map (fn [[child-val child-key]] [child-val (vec (concat key child-key))]))))))]
-    (concat obj-vals children)))
-
 (defn- with-parent-key [parent-key selection]
   (map# (fn [[value key]] [value (vec (concat parent-key key))]) selection))
+
+(defn obj-aggregator [obj]
+  (let [obj-vals (obj-vals obj)
+        children (mapcat (fn [[val key]] (with-parent-key key (obj-aggregator val))) obj-vals)]
+    (concat obj-vals children)))
 
 (defn walk-path [[next & parts] context]
   (cond
