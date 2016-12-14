@@ -20,8 +20,8 @@
   (select-by [:key "hello"] {:current [{:hello "foo"} {:hello "bar"}]}) => '(["foo" [0 :hello]] ["bar" [1 :hello]])
   (select-by [:key "hello"] {:current [{:blah "foo"} {:hello "bar"}]}) => '(["bar" [1 :hello]])
   (select-by [:key "*"] {:current {:hello "world"}}) => '(["world" [:hello]])
-  (select-by [:key "*"] {:current {:hello "world" :foo "bar"}}) => '(["bar" [:foo]] ["world" [:hello]])
-  (select-by [:key "*"] {:current [{:hello "world"} {:foo "bar"}]}) => '(["world" [0 :hello]] ["bar" [1 :foo]]))
+  (sort-by first (select-by [:key "*"] {:current {:hello "world" :foo "bar"}})) => '(["bar" [:foo]] ["world" [:hello]])
+  (sort-by first (select-by [:key "*"] {:current [{:hello "world"} {:foo "bar"}]})) => '(["bar" [1 :foo]] ["world" [0 :hello]]))
 
 (fact
   (walk-path [[:root]] {:root ...root..., :current  ...obj...}) => [...root... []]

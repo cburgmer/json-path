@@ -36,9 +36,9 @@
                                         (apply concat sub-selection)
                                         sub-selection))
    :else (cond
-           (= (first operands) "*") (map (fn [[k v]] [v [k]]) (:current context))
-           :else (let [key (keyword (first operands))]
-                   [(key (:current context)) [key]]))))
+          (= (first operands) "*") (map (fn [[k v]] [v [k]]) (:current context))
+          :else (let [key (keyword (first operands))]
+                  [(key (:current context)) [key]]))))
 
 (defn obj-vals [obj]
   (cond
