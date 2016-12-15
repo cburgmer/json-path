@@ -17,20 +17,17 @@
 
 (facts
   (select-by [:key "hello"] {:current {:hello "world"}}) => ["world" [:hello]]
-  (select-by [:key "hello"] {:current [{:hello "foo"} {:hello "bar"}]}) => '(["foo" [0 :hello]] ["bar" [1 :hello]])
-  (select-by [:key "hello"] {:current [{:blah "foo"} {:hello "bar"}]}) => '(["bar" [1 :hello]])
   (select-by [:key "*"] {:current {:hello "world"}}) => '(["world" [:hello]])
-  (sort-by first (select-by [:key "*"] {:current {:hello "world" :foo "bar"}})) => '(["bar" [:foo]] ["world" [:hello]])
-  (sort-by first (select-by [:key "*"] {:current [{:hello "world"} {:foo "bar"}]})) => '(["bar" [1 :foo]] ["world" [0 :hello]]))
+  (sort-by first (select-by [:key "*"] {:current {:hello "world" :foo "bar"}})) => '(["bar" [:foo]] ["world" [:hello]]))
 
 (fact
   (walk-path [[:root]] {:root ...root..., :current  ...obj...}) => [...root... []]
   (walk-path [[:root] [:child] [:key "foo"]] {:root {:foo "bar"}}) => ["bar" [:foo]]
-  (walk-path [[:key "foo"]] {:current [{:foo "bar"} {:foo "baz"} {:foo "qux"}]}) => '(["bar" [0 :foo]] ["baz" [1 :foo]] ["qux" [2 :foo]])
+  (walk-path [[:key "foo"]] {:current {:foo "bar"}}) => ["bar" [:foo]]
   (walk-path [[:all-children]] {:current {:foo "bar" :baz {:qux "zoo"}}}) => '([{:foo "bar" :baz {:qux "zoo"}} []]
                                                                                [{:qux "zoo"} [:baz]])
-  (distinct (walk-path [[:all-children] [:key "bar"]] ;; distinct works around dups, mentioned in https://github.com/gga/json-path/pull/6
-                       {:current '([{:bar "hello"}])})) => '(["hello" [0 0 :bar]]))
+  (walk-path [[:all-children] [:key "bar"]]
+             {:current '([{:bar "hello"}])}) => '(["hello" [0 0 :bar]]))
 
 (fact
   (walk-selector [:index "1"] {:current ["foo", "bar", "baz"]}) => ["bar" [1]]

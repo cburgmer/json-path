@@ -27,22 +27,14 @@
       sub-selection)))
 
 (defn select-by [[opcode & operands :as obj-spec] context]
-  (cond
-   (sequential? (:current context)) (let [sub-selection (->> (:current context)
-                                                             (map #(select-by obj-spec (assoc context :current %)))
-                                                             (map-indexed (fn [i sel] (map# (fn [[obj key]] [obj (vec (cons i key))]) sel)))
-                                                             (filter #(not (empty? (first %)))))]
-                                      (if (seq? (first sub-selection))
-                                        (apply concat sub-selection)
-                                        sub-selection))
-   :else (cond
-          (= (first operands) "*") (map (fn [[k v]] [v [k]]) (:current context))
-          :else (let [key (keyword (first operands))]
-                  [(key (:current context)) [key]]))))
+  (if (= (first operands) "*")
+    (map (fn [[k v]] [v [k]]) (:current context))
+    (let [key (keyword (first operands))]
+      [(key (:current context)) [key]])))
 
 (defn obj-vals [obj]
   (cond
-    (seq? obj) (map-indexed (fn [idx child-obj] [child-obj [idx]]) obj)
+    (sequential? obj) (map-indexed (fn [idx child-obj] [child-obj [idx]]) obj)
     (map? obj) (->> obj
                     (filter (fn [[k v]] (map? v)))
                     (map (fn [[k v]] [v [k]])))
