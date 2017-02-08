@@ -65,9 +65,11 @@
                                  (if (= "*" sel)
                                    (select-all (:current context))
                                    (if (sequential? obj)
-                                     (let [index (Integer/parseInt sel)]
+                                     (let [index #?(:clj (Integer/parseInt sel)
+                                                    :cljs (js/parseInt sel))]
                                        (m/with-context index (nth obj index) (:current context)))
-                                     (throw (Exception. "object must be an array.")))))
+                                     (throw #?(:clj (Exception. "object must be an array.")
+                                               :cljs (js/Error. "object must be an array."))))))
    (= :filter (first sel-expr)) (let [obj (:value (:current context))
                                       children (if (map? obj)
                                                  (map identity obj)

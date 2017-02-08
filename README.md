@@ -60,6 +60,15 @@ that maps contains keywords for the child objects.
 * [Matthew Gertner](https://github.com/matthewgertner)
 * [Christoph Burgmer](https://github.com/cburgmer)
 
+## JS build
+
+```
+$ curl -L https://github.com/clojure/clojurescript/releases/download/r1.9.293/cljs.jar -O
+$ java -cp cljs.jar:src clojure.main build.clj
+```
+
+Then in the browser: `jp.at_path('$..', {foo: "bar", baz: {hello: 'world'}})`
+
 ## License
 
 Copyright (C) 2011 Giles Alexander
